@@ -25,19 +25,19 @@ logger = logging.getLogger("bot")
 
 
 async def health_check(request: web.Request) -> web.Response:
-    return web.Response(text="AI English Tutor Telegram Bot is healthy and running!")
+    return web.Response(text="OK - AI English Tutor Bot is running healthy!")
 
 
-async def start_dummy_web_server(port: int) -> web.AppRunner:
-    """Starts a lightweight web server so Render Free Web Service doesn't shut down."""
+async def start_health_check_server(host: str = "0.0.0.0", port: int = 8080) -> web.AppRunner:
+    """Lightweight health-check server to prevent Render Web Service port binding timeout."""
     app = web.Application()
     app.router.add_get("/", health_check)
     app.router.add_get("/health", health_check)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
+    site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info(f"Health check web server running on port {port}")
+    logger.info(f"Health-check server running on {host}:{port}")
     return runner
 
 
@@ -46,14 +46,13 @@ async def main() -> None:
         logger.critical("BOT_TOKEN is missing! Please set BOT_TOKEN in environment variables.")
         sys.exit(1)
 
-    # 1. Start lightweight web server if PORT is provided by Render / Heroku
-    port_env = os.getenv("PORT")
+    # 1. Start aiohttp health-check server on 0.0.0.0:PORT (default 8080) for Render Web Service
+    port = int(os.environ.get("PORT", 8080))
     web_runner = None
-    if port_env:
-        try:
-            web_runner = await start_dummy_web_server(int(port_env))
-        except Exception as e:
-            logger.warning(f"Could not start dummy web server on port {port_env}: {e}")
+    try:
+        web_runner = await start_health_check_server(host="0.0.0.0", port=port)
+    except Exception as e:
+        logger.warning(f"Could not bind health-check server to port {port}: {e}")
 
     # 2. Initialize SQLite Database
     logger.info("Initializing database...")
