@@ -352,6 +352,14 @@ async def count_syllabus_lessons(level: str) -> int:
             return row[0] if row else 0
 
 
+async def count_all_syllabus_lessons() -> int:
+    """Returns total number of lessons across all levels in syllabus table."""
+    async with get_db() as db:
+        async with db.execute("SELECT COUNT(*) FROM syllabus") as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+
+
 async def add_syllabus_lesson(
     level: str,
     lesson_order: int,
